@@ -9,8 +9,8 @@ on:
     paths:
       - 'files/**'
       - '.github/workflows/build-usb-installation.yml'
-  schedule:
-    - cron: '0 6 * * mon'
+#  schedule:
+#    - cron: '0 6 * * mon'
   workflow_dispatch:
 jobs:
   once:
