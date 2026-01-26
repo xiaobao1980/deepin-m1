@@ -13,8 +13,8 @@ on:
       - 'bootstrap.sh'
       - 'files/**'
       - '.github/workflows/build-rootfs.yml'
-  schedule:
-    - cron: '0 6 * * mon'
+#  schedule:
+#    - cron: '0 6 * * mon'
   workflow_dispatch:
 jobs:
   once:
