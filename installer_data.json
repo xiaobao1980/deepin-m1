@@ -1,30 +1,95 @@
+// board/cm3588-nas/board.json
 {
-    "os_list": [
-        {
-            "name": "Deepin v23 Desktop",
-            "default_os_name": "Deepin",
-            "boot_object": "m1n1.bin",
-            "next_object": "m1n1/boot.bin",
-            "package": "deepin-desktop.zip",
-            "supported_fw": ["12.3", "12.4", "13.5"],
-            "partitions": [
-                {
-                    "name": "EFI",
-                    "type": "EFI",
-                    "size": "512MB",
-                    "format": "fat",
-                    "copy_firmware": true,
-                    "copy_installer_data": true,
-                    "source": "esp"
-                },
-                {
-                    "name": "Root",
-                    "type": "Linux",
-                    "size": "15GB",
-                    "expand": true,
-                    "image": "media"
-                }
-            ]
-        }
+  "metadata": {
+    "name": "CM3588-NAS",
+    "vendor": "FriendlyELEC",
+    "soc": "rk3588",
+    "description": "Deepin V25 for CM3588-NAS with 4x SATA support",
+    "version": "23.0.1",
+    "date": "2026-04-15"
+  },
+  
+  "partitions": [
+    {
+      "name": "idbloader",
+      "file": "u-boot/idbloader.img",
+      "offset": "0x2000",
+      "size": "0x4000",
+      "flash": {
+        "method": "dd",
+        "seek": "64"
+      }
+    },
+    {
+      "name": "uboot",
+      "file": "u-boot/u-boot.itb",
+      "offset": "0x4000",
+      "size": "0x20000",
+      "flash": {
+        "method": "dd",
+        "seek": "16384"
+      }
+    },
+    {
+      "name": "boot",
+      "type": "fat32",
+      "size": "256M",
+      "content": {
+        "kernel": "boot/Image",
+        "dtb": "boot/dtb/rockchip/rk3588-friendlyelec-cm3588-nas.dtb",
+        "overlays": "boot/dtb/rockchip/overlays/",
+        "extlinux": "boot/extlinux/extlinux.conf",
+        "initrd": "boot/initrd.img"
+      },
+      "env": {
+        "bootargs": "console=ttyFIQ0,1500000n8 console=tty1 rootwait rw net.ifnames=0 biosdevname=0"
+      }
+    },
+    {
+      "name": "root",
+      "type": "ext4",
+      "size": "dynamic",
+      "content": {
+        "base": "deepin-base.tar.gz",
+        "desktop": "deepin-desktop.tar.gz"
+      },
+      "resize_on_first_boot": true
+    }
+  ],
+  
+  "hardware": {
+    "gpu": "mali-g610",
+    "gpu_driver": "panfrost",
+    "gpu_firmware": ["mali_csffw.bin"],
+    "network": ["r8125", "r8125"],
+    "sata": 4,
+    "pcie": ["3.0x4"],
+    "thermal_zones": ["soc-thermal", "bigcore-thermal"],
+    "fan_control": {
+      "type": "pwm",
+      "pwm_chip": "pwmchip3",
+      "temp_source": "/sys/class/thermal/thermal_zone0/temp"
+    }
+  },
+  
+  "packages": {
+    "additional": [
+      "mdadm",
+      "smartmontools",
+      "hdparm",
+      "ethtool",
+      "r8125-dkms"
+    ],
+    "firmware": [
+      "firmware-realtek",
+      "rockchip-firmware"
     ]
+  },
+  
+  "deepin": {
+    "dde_optimizations": {
+      "disable_compositor_on_nas": true,
+      "sata_monitor_integration": true
+    }
+  }
 }
