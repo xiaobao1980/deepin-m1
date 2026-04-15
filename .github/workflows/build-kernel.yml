@@ -6,13 +6,13 @@ on:
         - 'dependencies.sh'
         - 'prepare_rust.sh'
         - 'm1n1_uboot_kernel.sh'
-        - '.github/workflows/build-m1n1-kernel.yml'
+        - '.github/workflows/build-kernel.yml'
     pull_request:
       paths:
         - 'dependencies.sh'
         - 'prepare_rust.sh'
         - 'm1n1_uboot_kernel.sh'
-        - '.github/workflows/build-m1n1-kernel.yml'
+        - '.github/workflows/build-kernel.yml'
     workflow_dispatch:
 jobs:
      build:
