@@ -1,0 +1,109 @@
+# .github/workflows/build-rockchip.yml
+name: Build Deepin Rockchip Images
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # 每周一凌晨 2 点 (同 deepin-m1)
+  workflow_dispatch:
+    inputs:
+      board:
+        description: 'Target Board'
+        required: true
+        default: 'cm3588-nas'
+        type: choice
+        options:
+          - cm3588-nas
+          - rock-5-itx
+          - rock-5b
+          - orangepi-5
+      variant:
+        description: 'Build Variant'
+        required: true
+        default: 'desktop'
+        type: choice
+        options:
+          - base
+          - desktop
+
+jobs:
+  build-rootfs:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            debootstrap qemu-user-static binfmt-support \
+            pigz jq device-tree-compiler
+      
+      - name: Setup QEMU
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      
+      - name: Build Rootfs
+        run: |
+          sudo ./scripts/bootstrap.sh \
+            ${{ inputs.board }} \
+            ${{ inputs.variant }} \
+            ./build \
+            beige
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rootfs-${{ inputs.board }}-${{ inputs.variant }}
+          path: build/installer-data/${{ inputs.board }}/
+          retention-days: 7
+
+  build-kernel:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Toolchain
+        run: |
+          sudo apt install -y \
+            gcc-aarch64-linux-gnu bison flex libssl-dev bc
+      
+      - name: Build Vendor Kernel
+        run: |
+          ./scripts/build-kernel.sh \
+            --board=${{ inputs.board }} \
+            --output=./build/kernel
+      
+      - name: Upload Kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-${{ inputs.board }}
+          path: build/kernel/
+
+  assemble-image:
+    needs: [build-rootfs, build-kernel]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build/
+      
+      - name: Assemble Disk Image
+        run: |
+          sudo ./scripts/mk-image.sh \
+            --board=${{ inputs.board }} \
+            --variant=${{ inputs.variant }} \
+            --output=./release
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*.img.xz
+          tag_name: v23.0.1-${{ inputs.board }}-${{ github.run_number }}
+          body: |
+            Deepin V23 for ${{ inputs.board }}
+            - Variant: ${{ inputs.variant }}
+            - Kernel: 6.1.75-rk3588
+            - Build Date: ${{ github.event.head_commit.timestamp }}
